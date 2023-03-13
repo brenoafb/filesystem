@@ -1,4 +1,4 @@
-package main
+package fs
 
 import (
 	"bufio"
@@ -236,6 +236,13 @@ func LoadFilesystem(dev BlockDevice) (*FileSystem, error) {
 		inodeBitmap: inodeBitmap,
 		dataBitmap:  dataBitmap,
 	}, nil
+}
+
+func (fs *FileSystem) GetInode(inodeIndex uint32) (*Inode, error) {
+    if inodeIndex >= 32 { // TODO remove hardcoded size
+        return nil, fmt.Errorf("inode index out of bounds: %d", inodeIndex)
+    }
+    return fs.inodes[inodeIndex], nil
 }
 
 func (fs *FileSystem) ReadInodeContents(inodeIndex uint32) (*bytes.Buffer, error) {
@@ -508,39 +515,3 @@ func (dev *ArrayBlockDevice) Dump() {
 	fmt.Println()
 }
 
-func main() {
-	// create a 128KiB array
-	disk := make([]byte, 32*1024)
-	// create a BlockDevice that uses the array as storage
-	dev := NewArrayBlockDevice(disk)
-
-	// create a filesystem on the device
-	fs, err := NewFileSystem(dev)
-
-	if err != nil {
-		panic(err)
-	}
-
-	// display the filesystem info
-	fs.DisplayInfo()
-
-	// Add a file
-	contentString := "Hello, world!"
-	content := bytes.NewBufferString(contentString)
-	inode, err := fs.CreateFile("/foo.txt", *content)
-	if err != nil {
-		panic(err)
-	}
-
-	// display the filesystem info
-	fs.DisplayInfo()
-
-	// Read back the file
-	buf, err := fs.ReadFileContents(inode.Index)
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Printf("File contents: %s\n", buf.String())
-}
